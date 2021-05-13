@@ -32,7 +32,13 @@ fn main() {
     let nx = 200;
     let ny = 100;
     let ns = 100;
-    let cam = Camera::new();
+    let cam = Camera::new(
+        Vec3::new(-2.0, 2.0, 1.0),
+        Vec3::new(0.0, 0.0, -1.0),
+        Vec3::new(0.0, 1.0, 0.0),
+        90.0,
+        nx as f32 / ny as f32,
+    );
 
     let mut world = HittableList::new();
     world.list.push(Box::new(Sphere::new(
