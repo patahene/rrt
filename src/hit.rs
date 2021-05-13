@@ -1,17 +1,16 @@
-use crate::material::Material;
+use crate::material::MaterialKind;
 use crate::ray::Ray;
 use crate::vec3::Vec3;
-use std::sync::Arc;
 
 pub struct HitRecord {
     pub t: f32,
     pub p: Vec3,
     pub normal: Vec3,
-    pub material: Arc<dyn Material>,
+    pub material: MaterialKind,
 }
 
 impl HitRecord {
-    pub fn new(mt: Arc<dyn Material>) -> HitRecord {
+    pub fn new(mt: MaterialKind) -> HitRecord {
         HitRecord {
             t: 0.0,
             p: Vec3::zero(),
@@ -26,7 +25,7 @@ pub trait Hittable {
 }
 
 pub struct HittableList {
-    pub list: Vec<Box<dyn Hittable>>,
+    pub list: Vec<Box<dyn Hittable + Send + Sync>>,
 }
 
 impl HittableList {

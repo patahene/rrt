@@ -3,6 +3,13 @@ use crate::random::rand_uniform;
 use crate::ray::Ray;
 use crate::vec3::Vec3;
 
+#[derive(Clone, Copy)]
+pub enum MaterialKind {
+    Lambertian(Lambertian),
+    Metal(Metal),
+    Dielectric(Dielectric),
+}
+
 pub trait Material {
     fn scatter(&self, r_in: &Ray, rec: &HitRecord) -> Option<(Ray, Vec3)>;
 }
@@ -17,6 +24,7 @@ fn random_in_unit_sphere() -> Vec3 {
     }
 }
 
+#[derive(Clone, Copy)]
 pub struct Lambertian {
     albedo: Vec3,
 }
@@ -25,16 +33,21 @@ impl Lambertian {
     pub fn new(a: Vec3) -> Lambertian {
         Lambertian { albedo: a }
     }
-}
+    // }
 
-impl Material for Lambertian {
-    fn scatter(&self, _r_in: &Ray, rec: &HitRecord) -> Option<(Ray, Vec3)> {
+    // impl Material for Lambertian {
+    pub fn scatter(&self, _r_in: &Ray, rec: &HitRecord) -> Option<(Ray, Vec3)> {
         let target = rec.p + rec.normal + random_in_unit_sphere();
         let scattered = Ray::new(rec.p, target - rec.p);
         Some((scattered, self.albedo))
     }
 }
 
+fn reflect(v: Vec3, n: Vec3) -> Vec3 {
+    v - 2.0 * v.dot(n) * n
+}
+
+#[derive(Clone, Copy)]
 pub struct Metal {
     albedo: Vec3,
     fuzz: f32,
@@ -47,14 +60,10 @@ impl Metal {
             fuzz: if f < 1.0 { f } else { 1.0 },
         }
     }
-}
+    // }
 
-fn reflect(v: Vec3, n: Vec3) -> Vec3 {
-    v - 2.0 * v.dot(n) * n
-}
-
-impl Material for Metal {
-    fn scatter(&self, r_in: &Ray, rec: &HitRecord) -> Option<(Ray, Vec3)> {
+    // impl Material for Metal {
+    pub fn scatter(&self, r_in: &Ray, rec: &HitRecord) -> Option<(Ray, Vec3)> {
         let reflected = reflect(r_in.direction().unit_vector(), rec.normal);
         let scattered = Ray::new(rec.p, reflected + self.fuzz * random_in_unit_sphere());
         if scattered.direction().dot(rec.normal) > 0.0 {
@@ -76,6 +85,13 @@ fn refract(v: Vec3, n: Vec3, ni_over_nt: f32) -> Option<Vec3> {
     }
 }
 
+fn schlick(cosine: f32, ref_idx: f32) -> f32 {
+    let r0 = (1.0 - ref_idx) / (1.0 + ref_idx);
+    let r0 = r0 * r0;
+    r0 + (1.0 - r0) * (1.0 - cosine).powi(5)
+}
+
+#[derive(Clone, Copy)]
 pub struct Dielectric {
     ref_idx: f32,
 }
@@ -84,16 +100,10 @@ impl Dielectric {
     pub fn new(ri: f32) -> Dielectric {
         Dielectric { ref_idx: ri }
     }
-}
+    // }
 
-fn schlick(cosine: f32, ref_idx: f32) -> f32 {
-    let r0 = (1.0 - ref_idx) / (1.0 + ref_idx);
-    let r0 = r0 * r0;
-    r0 + (1.0 - r0) * (1.0 - cosine).powi(5)
-}
-
-impl Material for Dielectric {
-    fn scatter(&self, r_in: &Ray, rec: &HitRecord) -> Option<(Ray, Vec3)> {
+    // impl Material for Dielectric {
+    pub fn scatter(&self, r_in: &Ray, rec: &HitRecord) -> Option<(Ray, Vec3)> {
         let reflected = reflect(r_in.direction(), rec.normal);
         let attenuation = Vec3::new(1.0, 1.0, 1.0);
         let (outward_normal, ni_over_nt, cosine) = if r_in.direction().dot(rec.normal) > 0.0 {

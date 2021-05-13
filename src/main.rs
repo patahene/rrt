@@ -1,25 +1,56 @@
+use image::ImageBuffer;
+use once_cell::sync::Lazy;
+use rrt::camera::Camera;
 use rrt::hit::HittableList;
-use rrt::material::{Dielectric, Lambertian, Metal};
+use rrt::material::{Dielectric, Lambertian, MaterialKind, Metal};
+use rrt::random::rand_uniform;
 use rrt::ray::Ray;
 use rrt::sphere::Sphere;
 use rrt::vec3::Vec3;
-use rrt::{camera::Camera, random::rand_uniform};
 
-use std::sync::Arc;
+const NX: u32 = 1920 * 2;
+const NY: u32 = 1080 * 2;
+const NS: u32 = 100;
+
+static CAM: Lazy<Camera> = Lazy::new(|| {
+    let lookfrom = Vec3::new(13.0, 2.0, 3.0);
+    let lookat = Vec3::new(0.0, 0.0, 0.0);
+    let dist_to_focus = (lookfrom - lookat).length();
+    let aperture = 0.1;
+    Camera::new(
+        lookfrom,
+        lookat,
+        Vec3::new(0.0, 1.0, 0.0),
+        20.0,
+        NX as f32 / NY as f32,
+        aperture,
+        dist_to_focus,
+    )
+});
+
+static SCENE: Lazy<HittableList> = Lazy::new(|| random_scene());
 
 fn color(r: &Ray, world: &HittableList, depth: i32) -> Vec3 {
     if depth >= 50 {
         return Vec3::zero();
     }
     match world.hit(r, 0.001, std::f32::MAX) {
-        Some(hr) => match hr.material.scatter(r, &hr) {
-            Some((scattered, att)) => {
-                return att * color(&scattered, world, depth + 1);
+        Some(hr) => {
+            let scatter_result = match hr.material {
+                MaterialKind::Lambertian(m) => m.scatter(r, &hr),
+                MaterialKind::Dielectric(m) => m.scatter(r, &hr),
+                MaterialKind::Metal(m) => m.scatter(r, &hr),
+            };
+
+            match scatter_result {
+                Some((scattered, att)) => {
+                    return att * color(&scattered, world, depth + 1);
+                }
+                None => {
+                    return Vec3::zero();
+                }
             }
-            None => {
-                return Vec3::zero();
-            }
-        },
+        }
         None => {
             let ud = r.direction().unit_vector();
             let t = 0.5 * (ud.y() + 1.0);
@@ -33,12 +64,13 @@ fn r2() -> f32 {
 }
 
 fn random_scene() -> HittableList {
+    fastrand::seed(0);
     let mut world = HittableList::new();
 
     world.list.push(Box::new(Sphere::new(
         Vec3::new(0.0, -1000.0, 0.0),
         1000.0,
-        Arc::new(Lambertian::new(Vec3::new(0.5, 0.5, 0.5))),
+        MaterialKind::Lambertian(Lambertian::new(Vec3::new(0.5, 0.5, 0.5))),
     )));
 
     for a in -11..11 {
@@ -53,14 +85,14 @@ fn random_scene() -> HittableList {
                     let s = Box::new(Sphere::new(
                         center,
                         0.2,
-                        Arc::new(Lambertian::new(Vec3::new(r2(), r2(), r2()))),
+                        MaterialKind::Lambertian(Lambertian::new(Vec3::new(r2(), r2(), r2()))),
                     ));
                     world.list.push(s);
                 } else if choose_mat < 0.95 {
                     let s = Box::new(Sphere::new(
                         center,
                         0.2,
-                        Arc::new(Metal::new(
+                        MaterialKind::Metal(Metal::new(
                             Vec3::new(
                                 0.5 * (1.0 + rand_uniform()),
                                 0.5 * (1.0 + rand_uniform()),
@@ -71,7 +103,11 @@ fn random_scene() -> HittableList {
                     ));
                     world.list.push(s);
                 } else {
-                    let s = Box::new(Sphere::new(center, 0.2, Arc::new(Dielectric::new(1.5))));
+                    let s = Box::new(Sphere::new(
+                        center,
+                        0.2,
+                        MaterialKind::Dielectric(Dielectric::new(1.5)),
+                    ));
                     world.list.push(s);
                 }
             }
@@ -81,60 +117,55 @@ fn random_scene() -> HittableList {
     world.list.push(Box::new(Sphere::new(
         Vec3::new(0.0, 1.0, 0.0),
         1.0,
-        Arc::new(Dielectric::new(1.5)),
+        MaterialKind::Dielectric(Dielectric::new(1.5)),
     )));
     world.list.push(Box::new(Sphere::new(
         Vec3::new(-4.0, 1.0, 0.0),
         1.0,
-        Arc::new(Lambertian::new(Vec3::new(0.4, 0.2, 0.1))),
+        MaterialKind::Lambertian(Lambertian::new(Vec3::new(0.4, 0.2, 0.1))),
     )));
     world.list.push(Box::new(Sphere::new(
         Vec3::new(4.0, 1.0, 0.0),
         1.0,
-        Arc::new(Metal::new(Vec3::new(0.7, 0.6, 0.5), 0.0)),
+        MaterialKind::Metal(Metal::new(Vec3::new(0.7, 0.6, 0.5), 0.0)),
     )));
     world
 }
 
-fn main() {
-    let nx = 200;
-    let ny = 100;
-    let ns = 100;
-    let lookfrom = Vec3::new(13.0, 2.0, 3.0);
-    let lookat = Vec3::new(0.0, 0.0, 0.0);
-    let dist_to_focus = (lookfrom - lookat).length();
-    let aperture = 0.1;
-    let cam = Camera::new(
-        lookfrom,
-        lookat,
-        Vec3::new(0.0, 1.0, 0.0),
-        20.0,
-        nx as f32 / ny as f32,
-        aperture,
-        dist_to_focus,
-    );
-
-    let world = random_scene();
-    dbg!(&world.list.len());
-
-    println!("P3");
-    println!("{} {}", nx, ny);
-    println!("255");
-    for j in (0..ny).rev() {
-        dbg!(j);
-        for i in 0..nx {
-            let mut col = Vec3::zero();
-            for _ in 0..ns {
-                let u = (rand_uniform() + i as f32) / nx as f32;
-                let v = (rand_uniform() + j as f32) / ny as f32;
-
-                let r = cam.get_ray(u, v);
-                col += color(&r, &world, 0);
-            }
-            col /= ns as f32;
-            col = Vec3::new(col.x().sqrt(), col.y().sqrt(), col.z().sqrt());
-
-            println!("{} {} {}", col.r(), col.g(), col.b());
+#[tokio::main]
+async fn main() -> Result<(), Box<dyn std::error::Error>> {
+    let mut jh = vec![];
+    {
+        for j in 0..NY {
+            let mut row = vec![];
+            let h = tokio::spawn(async move {
+                for i in 0..NX {
+                    let mut col = Vec3::zero();
+                    for _ in 0..NS {
+                        let u = (rand_uniform() + i as f32) / NX as f32;
+                        let v = (rand_uniform() + (NY - j - 1) as f32) / NY as f32;
+                        let r = CAM.get_ray(u, v);
+                        col += color(&r, &SCENE, 0);
+                    }
+                    col /= NS as f32;
+                    col = Vec3::new(col.x().sqrt(), col.y().sqrt(), col.z().sqrt());
+                    row.push(col);
+                }
+                row
+            });
+            jh.push(h);
         }
     }
+
+    let mut ib = ImageBuffer::new(NX, NY);
+    for (j, h) in jh.iter_mut().enumerate() {
+        dbg!(j);
+        let r = h.await.unwrap();
+        for (i, col) in r.iter().enumerate() {
+            ib.put_pixel(i as u32, j as u32, image::Rgb([col.r(), col.g(), col.b()]));
+        }
+    }
+    ib.save("my_scene.png").unwrap();
+
+    Ok(())
 }
