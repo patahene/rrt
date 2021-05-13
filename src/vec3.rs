@@ -24,14 +24,14 @@ impl Vec3 {
         self.e[2]
     }
 
-    pub fn r(&self) -> f32 {
-        self.e[0]
+    pub fn r(&self) -> i32 {
+        (self.e[0] as f32 * 255.99) as i32
     }
-    pub fn g(&self) -> f32 {
-        self.e[1]
+    pub fn g(&self) -> i32 {
+        (self.e[1] as f32 * 255.99) as i32
     }
-    pub fn b(&self) -> f32 {
-        self.e[2]
+    pub fn b(&self) -> i32 {
+        (self.e[2] as f32 * 255.99) as i32
     }
 
     pub fn length(&self) -> f32 {
