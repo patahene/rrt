@@ -6,15 +6,25 @@ use rrt::vec3::Vec3;
 
 use rand::{distributions::Standard, Rng};
 
-fn color(r: &Ray, world: &HittableList) -> Vec3 {
-    match world.hit(r, 0.0, std::f32::MAX) {
+fn random_in_unit_sphere(rng: &mut rand::prelude::StdRng) -> Vec3 {
+    loop {
+        let p =
+            2.0 * Vec3::new(
+                rng.sample(Standard),
+                rng.sample(Standard),
+                rng.sample(Standard),
+            ) - Vec3::new(1.0, 1.0, 1.0);
+        if p.squared_length() < 1.0 {
+            return p;
+        }
+    }
+}
+
+fn color(r: &Ray, world: &HittableList, rng: &mut rand::prelude::StdRng) -> Vec3 {
+    match world.hit(r, 0.001, std::f32::MAX) {
         Some(hr) => {
-            return 0.5
-                * Vec3::new(
-                    hr.normal.x() + 1.0,
-                    hr.normal.y() + 1.0,
-                    hr.normal.z() + 1.0,
-                );
+            let target = hr.p + hr.normal + random_in_unit_sphere(rng);
+            return 0.5 * color(&Ray::new(hr.p, target - hr.p), world, rng);
         }
         None => {
             let ud = r.direction().unit_vector();
@@ -57,9 +67,10 @@ fn main() {
 
                 let r = cam.get_ray(u, v);
                 // let p = r.point_at_parameter(2.0);
-                col += color(&r, &world);
+                col += color(&r, &world, &mut rng);
             }
             col /= ns as f32;
+            col = Vec3::new(col.x().sqrt(), col.y().sqrt(), col.z().sqrt());
 
             println!("{} {} {}", col.r(), col.g(), col.b());
         }
