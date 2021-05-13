@@ -1,22 +1,24 @@
+use rrt::hit::HittableList;
 use rrt::ray::Ray;
+use rrt::sphere::Sphere;
 use rrt::vec3::Vec3;
 
-fn hit_sphere(center: &Vec3, radius: f32, r: &Ray) -> bool {
-    let oc = r.origin() - *center;
-    let a = r.direction().dot(r.direction());
-    let b = 2.0 * oc.dot(r.direction());
-    let c = oc.dot(oc) - radius * radius;
-    let discriminant = b * b - 4.0 * a * c;
-    discriminant > 0.0
-}
-
-fn color(r: &Ray) -> Vec3 {
-    if hit_sphere(&Vec3::new(0.0, 0.0, -1.0), 0.5, &r) {
-        return Vec3::new(1.0, 0.0, 0.0);
+fn color(r: &Ray, world: &HittableList) -> Vec3 {
+    match world.hit(r, 0.0, std::f32::MAX) {
+        Some(hr) => {
+            return 0.5
+                * Vec3::new(
+                    hr.normal.x() + 1.0,
+                    hr.normal.y() + 1.0,
+                    hr.normal.z() + 1.0,
+                );
+        }
+        None => {
+            let ud = r.direction().unit_vector();
+            let t = 0.5 * (ud.y() + 1.0);
+            return (1.0 - t) * Vec3::new(1.0, 1.0, 1.0) + t * Vec3::new(0.5, 0.7, 1.0);
+        }
     }
-    let ud = r.direction().unit_vector();
-    let t = 0.5 * (ud.y() + 1.0);
-    (1.0 - t) * Vec3::new(1.0, 1.0, 1.0) + t * Vec3::new(0.5, 0.7, 1.0)
 }
 
 fn main() {
@@ -28,6 +30,14 @@ fn main() {
     let vertical = Vec3::new(0.0, 2.0, 0.0);
     let origin = Vec3::zero();
 
+    let mut world = HittableList::new();
+    world
+        .list
+        .push(Box::new(Sphere::new(Vec3::new(0.0, 0.0, -1.0), 0.5)));
+    world
+        .list
+        .push(Box::new(Sphere::new(Vec3::new(0.0, -100.5, -1.0), 100.0)));
+
     println!("P3");
     println!("{} {}", nx, ny);
     println!("255");
@@ -36,7 +46,7 @@ fn main() {
             let u = i as f32 / nx as f32;
             let v = j as f32 / ny as f32;
             let r = Ray::new(origin, lower_left_corner + u * horizontal + v * vertical);
-            let col = color(&r) * 255.99;
+            let col = color(&r, &world) * 255.99;
             println!("{} {} {}", col.r() as i32, col.g() as i32, col.b() as i32);
         }
     }
