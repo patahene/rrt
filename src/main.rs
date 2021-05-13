@@ -1,31 +1,25 @@
-use rrt::camera::Camera;
 use rrt::hit::HittableList;
+use rrt::material::{Lambertian, Metal};
 use rrt::ray::Ray;
 use rrt::sphere::Sphere;
 use rrt::vec3::Vec3;
+use rrt::{camera::Camera, random::rand_uniform};
 
-use rand::{distributions::Standard, Rng};
+use std::sync::Arc;
 
-fn random_in_unit_sphere(rng: &mut rand::prelude::StdRng) -> Vec3 {
-    loop {
-        let p =
-            2.0 * Vec3::new(
-                rng.sample(Standard),
-                rng.sample(Standard),
-                rng.sample(Standard),
-            ) - Vec3::new(1.0, 1.0, 1.0);
-        if p.squared_length() < 1.0 {
-            return p;
-        }
+fn color(r: &Ray, world: &HittableList, depth: i32) -> Vec3 {
+    if depth >= 50 {
+        return Vec3::zero();
     }
-}
-
-fn color(r: &Ray, world: &HittableList, rng: &mut rand::prelude::StdRng) -> Vec3 {
     match world.hit(r, 0.001, std::f32::MAX) {
-        Some(hr) => {
-            let target = hr.p + hr.normal + random_in_unit_sphere(rng);
-            return 0.5 * color(&Ray::new(hr.p, target - hr.p), world, rng);
-        }
+        Some(hr) => match hr.material.scatter(r, &hr) {
+            Some((scattered, att)) => {
+                return att * color(&scattered, world, depth + 1);
+            }
+            None => {
+                return Vec3::zero();
+            }
+        },
         None => {
             let ud = r.direction().unit_vector();
             let t = 0.5 * (ud.y() + 1.0);
@@ -40,16 +34,27 @@ fn main() {
     let ns = 100;
     let cam = Camera::new();
 
-    let seed: [u8; 32] = [0; 32];
-    let mut rng: rand::prelude::StdRng = rand::SeedableRng::from_seed(seed);
-
     let mut world = HittableList::new();
-    world
-        .list
-        .push(Box::new(Sphere::new(Vec3::new(0.0, 0.0, -1.0), 0.5)));
-    world
-        .list
-        .push(Box::new(Sphere::new(Vec3::new(0.0, -100.5, -1.0), 100.0)));
+    world.list.push(Box::new(Sphere::new(
+        Vec3::new(0.0, 0.0, -1.0),
+        0.5,
+        Arc::new(Lambertian::new(Vec3::new(0.8, 0.3, 0.3))),
+    )));
+    world.list.push(Box::new(Sphere::new(
+        Vec3::new(0.0, -100.5, -1.0),
+        100.0,
+        Arc::new(Lambertian::new(Vec3::new(0.8, 0.8, 0.0))),
+    )));
+    world.list.push(Box::new(Sphere::new(
+        Vec3::new(1.0, 0.0, -1.0),
+        0.5,
+        Arc::new(Metal::new(Vec3::new(0.8, 0.6, 0.2), 1.0)),
+    )));
+    world.list.push(Box::new(Sphere::new(
+        Vec3::new(-1.0, 0.0, -1.0),
+        0.5,
+        Arc::new(Metal::new(Vec3::new(0.8, 0.8, 0.8), 0.3)),
+    )));
     let world = world;
 
     println!("P3");
@@ -59,15 +64,12 @@ fn main() {
         for i in 0..nx {
             let mut col = Vec3::zero();
             for _ in 0..ns {
-                let s: f32 = rng.sample(Standard);
-                let u = (s + i as f32) / nx as f32;
-
-                let s: f32 = rng.sample(Standard);
-                let v = (s + j as f32) / ny as f32;
+                let u = (rand_uniform() + i as f32) / nx as f32;
+                let v = (rand_uniform() + j as f32) / ny as f32;
 
                 let r = cam.get_ray(u, v);
                 // let p = r.point_at_parameter(2.0);
-                col += color(&r, &world, &mut rng);
+                col += color(&r, &world, 0);
             }
             col /= ns as f32;
             col = Vec3::new(col.x().sqrt(), col.y().sqrt(), col.z().sqrt());

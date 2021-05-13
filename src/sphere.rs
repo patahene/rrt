@@ -1,17 +1,22 @@
 use crate::hit::{HitRecord, Hittable};
+use crate::material::Material;
 use crate::ray::Ray;
 use crate::vec3::Vec3;
+
+use std::sync::Arc;
 
 pub struct Sphere {
     pub center: Vec3,
     pub radius: f32,
+    pub material: Arc<dyn Material>,
 }
 
 impl Sphere {
-    pub fn new(c: Vec3, r: f32) -> Sphere {
+    pub fn new(c: Vec3, r: f32, mat: Arc<dyn Material>) -> Sphere {
         Sphere {
             center: c,
             radius: r,
+            material: mat,
         }
     }
 }
@@ -24,7 +29,7 @@ impl Hittable for Sphere {
         let c = oc.dot(oc) - self.radius * self.radius;
         let discriminat = b * b - a * c;
         if discriminat > 0.0 {
-            let mut rec = HitRecord::new();
+            let mut rec = HitRecord::new(self.material.clone());
             let temp = (-b - (b * b - a * c).sqrt()) / a;
             if t_min < temp && temp < t_max {
                 rec.t = temp;
