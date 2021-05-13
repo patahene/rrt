@@ -1,4 +1,4 @@
-use std::ops::{Add, AddAssign, Div, DivAssign, Mul, MulAssign, Sub, SubAssign};
+use std::ops::{Add, AddAssign, Div, DivAssign, Mul, MulAssign, Neg, Sub, SubAssign};
 
 #[derive(Debug, Copy, Clone)]
 pub struct Vec3 {
@@ -166,6 +166,13 @@ impl MulAssign<f32> for Vec3 {
         for i in 0..3 {
             self.e[i] *= rhs;
         }
+    }
+}
+
+impl Neg for Vec3 {
+    type Output = Vec3;
+    fn neg(self) -> Self::Output {
+        Vec3::new(-self.e[0], -self.e[1], -self.e[2])
     }
 }
 
@@ -425,6 +432,16 @@ mod tests {
         assert_float_eq!(a.x(), 1.0 * 2.0, abs <= ABS_DIFF_LIMIT);
         assert_float_eq!(a.y(), 2.0 * 2.0, abs <= ABS_DIFF_LIMIT);
         assert_float_eq!(a.z(), 3.0 * 2.0, abs <= ABS_DIFF_LIMIT);
+    }
+
+    #[test]
+    fn neg_v3() {
+        let a = Vec3::new(1.0, 2.0, 3.0);
+        let b = Vec3::new(-1.0, -2.0, -3.0);
+        let c = -a;
+        assert_eq!(c.x(), b.x());
+        assert_eq!(c.y(), b.y());
+        assert_eq!(c.z(), b.z());
     }
 
     #[test]

@@ -1,5 +1,5 @@
 use rrt::hit::HittableList;
-use rrt::material::{Lambertian, Metal};
+use rrt::material::{Dielectric, Lambertian, Metal};
 use rrt::ray::Ray;
 use rrt::sphere::Sphere;
 use rrt::vec3::Vec3;
@@ -38,7 +38,7 @@ fn main() {
     world.list.push(Box::new(Sphere::new(
         Vec3::new(0.0, 0.0, -1.0),
         0.5,
-        Arc::new(Lambertian::new(Vec3::new(0.8, 0.3, 0.3))),
+        Arc::new(Lambertian::new(Vec3::new(0.1, 0.2, 0.5))),
     )));
     world.list.push(Box::new(Sphere::new(
         Vec3::new(0.0, -100.5, -1.0),
@@ -48,12 +48,17 @@ fn main() {
     world.list.push(Box::new(Sphere::new(
         Vec3::new(1.0, 0.0, -1.0),
         0.5,
-        Arc::new(Metal::new(Vec3::new(0.8, 0.6, 0.2), 1.0)),
+        Arc::new(Metal::new(Vec3::new(0.8, 0.6, 0.2), 0.0)),
     )));
     world.list.push(Box::new(Sphere::new(
         Vec3::new(-1.0, 0.0, -1.0),
         0.5,
-        Arc::new(Metal::new(Vec3::new(0.8, 0.8, 0.8), 0.3)),
+        Arc::new(Dielectric::new(1.5)),
+    )));
+    world.list.push(Box::new(Sphere::new(
+        Vec3::new(-1.0, 0.0, -1.0),
+        -0.45,
+        Arc::new(Dielectric::new(1.5)),
     )));
     let world = world;
 

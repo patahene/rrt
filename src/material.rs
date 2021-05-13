@@ -64,3 +64,63 @@ impl Material for Metal {
         }
     }
 }
+
+fn refract(v: Vec3, n: Vec3, ni_over_nt: f32) -> Option<Vec3> {
+    let uv = v.unit_vector();
+    let dt = uv.dot(n);
+    let discriminant = 1.0 - ni_over_nt * ni_over_nt * (1.0 - dt * dt);
+    if discriminant > 0.0 {
+        Some(ni_over_nt * (uv - n * dt) - n * discriminant.sqrt())
+    } else {
+        None
+    }
+}
+
+pub struct Dielectric {
+    ref_idx: f32,
+}
+
+impl Dielectric {
+    pub fn new(ri: f32) -> Dielectric {
+        Dielectric { ref_idx: ri }
+    }
+}
+
+fn schlick(cosine: f32, ref_idx: f32) -> f32 {
+    let r0 = (1.0 - ref_idx) / (1.0 + ref_idx);
+    let r0 = r0 * r0;
+    r0 + (1.0 - r0) * (1.0 - cosine).powi(5)
+}
+
+impl Material for Dielectric {
+    fn scatter(&self, r_in: &Ray, rec: &HitRecord) -> Option<(Ray, Vec3)> {
+        let reflected = reflect(r_in.direction(), rec.normal);
+        let attenuation = Vec3::new(1.0, 1.0, 1.0);
+        let (outward_normal, ni_over_nt, cosine) = if r_in.direction().dot(rec.normal) > 0.0 {
+            (
+                -rec.normal,
+                self.ref_idx,
+                self.ref_idx * r_in.direction().dot(rec.normal) / r_in.direction().length(),
+            )
+        } else {
+            (
+                rec.normal,
+                1.0 / self.ref_idx,
+                -r_in.direction().dot(rec.normal) / r_in.direction().length(),
+            )
+        };
+
+        let scattered = match refract(r_in.direction(), outward_normal, ni_over_nt) {
+            Some(refracted) => {
+                if rand_uniform() < schlick(cosine, self.ref_idx) {
+                    Ray::new(rec.p, reflected)
+                } else {
+                    Ray::new(rec.p, refracted)
+                }
+            }
+            None => Ray::new(rec.p, reflected),
+        };
+
+        Some((scattered, attenuation))
+    }
+}
