@@ -53,6 +53,10 @@ impl Vec3 {
             self.e[0] * other.e[1] - self.e[1] * other.e[0],
         )
     }
+
+    pub fn unit_vector(&self) -> Vec3 {
+        *self / self.length()
+    }
 }
 
 impl Add for Vec3 {
@@ -233,6 +237,21 @@ mod tests {
         let a = Vec3::new(1.0, 2.0, 3.0);
         let b = Vec3::new(3.0, 1.0, 1.0);
         assert_float_eq!(a.dot(b), 8.0, abs <= ABS_DIFF_LIMIT);
+    }
+
+    #[test]
+    fn unit_vector() {
+        let a = Vec3::new(1.0, 0.0, 0.0);
+        let u = a.unit_vector();
+        assert_float_eq!(u.x(), 1.0, abs <= ABS_DIFF_LIMIT);
+        assert_float_eq!(u.length(), 1.0, abs <= ABS_DIFF_LIMIT);
+
+        let a = Vec3::new(1.0, 2.0, 3.0);
+        let u = a.unit_vector();
+        assert_float_eq!(u.x(), 1.0 / a.length(), abs <= ABS_DIFF_LIMIT);
+        assert_float_eq!(u.y(), 2.0 / a.length(), abs <= ABS_DIFF_LIMIT);
+        assert_float_eq!(u.z(), 3.0 / a.length(), abs <= ABS_DIFF_LIMIT);
+        assert_float_eq!(u.length(), 1.0, abs <= ABS_DIFF_LIMIT);
     }
 
     #[test]
