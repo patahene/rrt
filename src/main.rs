@@ -8,8 +8,8 @@ use rrt::ray::Ray;
 use rrt::sphere::Sphere;
 use rrt::vec3::Vec3;
 
-const NX: u32 = 1920 * 2;
-const NY: u32 = 1080 * 2;
+const NX: u32 = 1920;
+const NY: u32 = 1080;
 const NS: u32 = 100;
 
 static CAM: Lazy<Camera> = Lazy::new(|| {
@@ -132,8 +132,7 @@ fn random_scene() -> HittableList {
     world
 }
 
-#[tokio::main]
-async fn main() -> Result<(), Box<dyn std::error::Error>> {
+async fn rendering() {
     let mut jh = vec![];
     {
         for j in 0..NY {
@@ -159,13 +158,36 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     let mut ib = ImageBuffer::new(NX, NY);
     for (j, h) in jh.iter_mut().enumerate() {
-        dbg!(j);
         let r = h.await.unwrap();
         for (i, col) in r.iter().enumerate() {
             ib.put_pixel(i as u32, j as u32, image::Rgb([col.r(), col.g(), col.b()]));
         }
     }
     ib.save("my_scene.png").unwrap();
+}
 
-    Ok(())
+use clap::{App, Arg};
+
+fn main() {
+    let matches = App::new("rtt")
+        .version("0.1.0")
+        .arg(
+            Arg::with_name("thread")
+                .short("t")
+                .long("thread")
+                .value_name("THREAD_NUM")
+                .takes_value(true),
+        )
+        .get_matches();
+
+    let thread: usize = matches.value_of("thread").unwrap_or("0").parse().unwrap();
+    let mut runtime = tokio::runtime::Builder::new_multi_thread();
+    if thread > 0 {
+        runtime.worker_threads(thread);
+    }
+    runtime.enable_all().build().unwrap().block_on(async {
+        let start = std::time::SystemTime::now();
+        rendering().await;
+        println!("{:?}", start.elapsed().unwrap());
+    });
 }
