@@ -121,7 +121,6 @@ fn color(r: &Ray, world: &HittableList, depth: i32) -> Vec3 {
                 MaterialKind::Lambertian(m) => m.scatter(r, &hr),
                 MaterialKind::Dielectric(m) => m.scatter(r, &hr),
                 MaterialKind::Metal(m) => m.scatter(r, &hr),
-                MaterialKind::DielectricWithAlbedo(m) => m.scatter(r, &hr),
             };
 
             match scatter_result {
@@ -190,7 +189,7 @@ fn random_scene() -> HittableList {
                     let s = Box::new(Sphere::new(
                         center,
                         0.2,
-                        MaterialKind::Dielectric(Dielectric::new(1.5)),
+                        MaterialKind::Dielectric(Dielectric::new(1.5, Vec3::one())),
                     ));
                     world.list.push(s);
                 }
@@ -201,7 +200,7 @@ fn random_scene() -> HittableList {
     world.list.push(Box::new(Sphere::new(
         Vec3::new(0.0, 1.0, 0.0),
         1.0,
-        MaterialKind::Dielectric(Dielectric::new(1.5)),
+        MaterialKind::Dielectric(Dielectric::new(1.5, Vec3::one())),
     )));
     world.list.push(Box::new(Sphere::new(
         Vec3::new(-4.0, 1.0, 0.0),

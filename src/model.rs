@@ -1,5 +1,5 @@
 use crate::hit::Hittable;
-use crate::material::DielectricWithAlbedo;
+use crate::material::Dielectric;
 use crate::material::Lambertian;
 use crate::material::MaterialKind;
 use crate::triangle::Triangle;
@@ -8,7 +8,7 @@ use crate::vec3::Vec3;
 pub fn ramiel(position: Vec3, scale: f32) -> Vec<Box<dyn Hittable + Send + Sync>> {
     let mut r: Vec<Box<dyn Hittable + Send + Sync>> = vec![];
 
-    let mat = MaterialKind::DielectricWithAlbedo(DielectricWithAlbedo::new(
+    let mat = MaterialKind::Dielectric(Dielectric::new(
         1.1,
         Vec3::new(0.2, 0.2, 0.85),
     ));

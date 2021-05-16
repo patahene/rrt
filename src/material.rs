@@ -8,7 +8,6 @@ pub enum MaterialKind {
     Lambertian(Lambertian),
     Metal(Metal),
     Dielectric(Dielectric),
-    DielectricWithAlbedo(DielectricWithAlbedo),
 }
 
 pub trait Material {
@@ -93,59 +92,16 @@ fn schlick(cosine: f32, ref_idx: f32) -> f32 {
     r0 + (1.0 - r0) * (1.0 - cosine).powi(5)
 }
 
+
 #[derive(Clone, Copy, Debug)]
 pub struct Dielectric {
-    ref_idx: f32,
-}
-
-impl Dielectric {
-    pub fn new(ri: f32) -> Dielectric {
-        Dielectric { ref_idx: ri }
-    }
-    // }
-
-    // impl Material for Dielectric {
-    pub fn scatter(&self, r_in: &Ray, rec: &HitRecord) -> Option<(Ray, Vec3)> {
-        let reflected = reflect(r_in.direction(), rec.normal);
-        let attenuation = Vec3::new(1.0, 1.0, 1.0);
-        let (outward_normal, ni_over_nt, cosine) = if r_in.direction().dot(rec.normal) > 0.0 {
-            (
-                -rec.normal,
-                self.ref_idx,
-                self.ref_idx * r_in.direction().dot(rec.normal) / r_in.direction().length(),
-            )
-        } else {
-            (
-                rec.normal,
-                1.0 / self.ref_idx,
-                -r_in.direction().dot(rec.normal) / r_in.direction().length(),
-            )
-        };
-
-        let scattered = match refract(r_in.direction(), outward_normal, ni_over_nt) {
-            Some(refracted) => {
-                if rand_uniform() < schlick(cosine, self.ref_idx) {
-                    Ray::new(rec.p, reflected)
-                } else {
-                    Ray::new(rec.p, refracted)
-                }
-            }
-            None => Ray::new(rec.p, reflected),
-        };
-
-        Some((scattered, attenuation))
-    }
-}
-
-#[derive(Clone, Copy, Debug)]
-pub struct DielectricWithAlbedo {
     ref_idx: f32,
     albedo: Vec3,
 }
 
-impl DielectricWithAlbedo {
-    pub fn new(ri: f32, a: Vec3) -> DielectricWithAlbedo {
-        DielectricWithAlbedo {
+impl Dielectric {
+    pub fn new(ri: f32, a: Vec3) -> Dielectric {
+        Dielectric {
             ref_idx: ri,
             albedo: a,
         }
