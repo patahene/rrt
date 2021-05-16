@@ -1,7 +1,9 @@
 pub mod camera;
 pub mod hit;
 pub mod material;
+pub mod model;
 pub mod random;
 pub mod ray;
 pub mod sphere;
+pub mod triangle;
 pub mod vec3;

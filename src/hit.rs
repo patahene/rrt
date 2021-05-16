@@ -2,6 +2,7 @@ use crate::material::MaterialKind;
 use crate::ray::Ray;
 use crate::vec3::Vec3;
 
+#[derive(Debug)]
 pub struct HitRecord {
     pub t: f32,
     pub p: Vec3,

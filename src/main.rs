@@ -1,8 +1,11 @@
+use clap::{App, Arg};
 use image::ImageBuffer;
 use once_cell::sync::Lazy;
 use rrt::camera::Camera;
 use rrt::hit::HittableList;
 use rrt::material::{Dielectric, Lambertian, MaterialKind, Metal};
+use rrt::model::ramiel;
+use rrt::model::wall;
 use rrt::random::rand_uniform;
 use rrt::ray::Ray;
 use rrt::sphere::Sphere;
@@ -12,23 +15,101 @@ const NX: u32 = 1920;
 const NY: u32 = 1080;
 const NS: u32 = 100;
 
+// const NX: u32 = 1920 / 5;
+// const NY: u32 = 1080 / 5;
+// const NS: u32 = 100;
+
+static SCENE: Lazy<HittableList> = Lazy::new(|| test_scene());
 static CAM: Lazy<Camera> = Lazy::new(|| {
-    let lookfrom = Vec3::new(13.0, 2.0, 3.0);
+    let lookfrom = Vec3::new(10.0, 20.0, 50.0);
     let lookat = Vec3::new(0.0, 0.0, 0.0);
-    let dist_to_focus = (lookfrom - lookat).length();
+    let focus_dist = (lookfrom - lookat).length();
     let aperture = 0.1;
-    Camera::new(
-        lookfrom,
-        lookat,
-        Vec3::new(0.0, 1.0, 0.0),
-        20.0,
-        NX as f32 / NY as f32,
-        aperture,
-        dist_to_focus,
-    )
+    let vup = Vec3::new(0.0, 1.0, 0.0);
+    let vfov = 20.0;
+    let aspect = NX as f32 / NY as f32;
+
+    Camera::new(lookfrom, lookat, vup, vfov, aspect, aperture, focus_dist)
 });
 
-static SCENE: Lazy<HittableList> = Lazy::new(|| random_scene());
+// static SCENE: Lazy<HittableList> = Lazy::new(|| random_scene());
+// static CAM: Lazy<Camera> = Lazy::new(|| {
+//     let lookfrom = Vec3::new(13.0, 2.0, 3.0);
+//     // let lookfrom = Vec3::new(5.0, 5.0, 5.0);
+//     let lookat = Vec3::new(0.0, 0.0, 0.0);
+//     let focus_dist = (lookfrom - lookat).length();
+//     let aperture = 0.1;
+//     let vup = Vec3::new(0.0, 1.0, 0.0);
+//     let vfov = 20.0;
+//     let aspect = NX as f32 / NY as f32;
+//     Camera::new(lookfrom, lookat, vup, vfov, aspect, aperture, focus_dist)
+// });
+
+#[allow(dead_code)]
+fn test_scene() -> HittableList {
+    let mut world = HittableList::new();
+
+    let metal = MaterialKind::Metal(Metal::new(Vec3::new(0.9, 0.9, 0.9), 0.0));
+    let lam_g = MaterialKind::Lambertian(Lambertian::new(Vec3::new(0.2, 0.8, 0.2)));
+
+    world.list.push(Box::new(Sphere::new(
+        Vec3::new(0.0, 0.0, 0.0),
+        0.1,
+        MaterialKind::Lambertian(Lambertian::new(Vec3::new(0.0, 0.0, 0.0))),
+    )));
+
+    world.list.push(Box::new(Sphere::new(
+        Vec3::new(5.0, 0.0, 0.0),
+        0.1,
+        MaterialKind::Lambertian(Lambertian::new(Vec3::new(1.0, 0.0, 0.0))),
+    )));
+
+    world.list.push(Box::new(Sphere::new(
+        Vec3::new(0.0, 5.0, 0.0),
+        0.1,
+        MaterialKind::Lambertian(Lambertian::new(Vec3::new(0.0, 1.0, 0.0))),
+    )));
+
+    world.list.push(Box::new(Sphere::new(
+        Vec3::new(0.0, 0.0, 5.0),
+        0.1,
+        MaterialKind::Lambertian(Lambertian::new(Vec3::new(0.0, 0.0, 1.0))),
+    )));
+
+    for t in ramiel(Vec3::new(0.0, 2.0, 0.0), 2.0) {
+        world.list.push(t);
+    }
+
+    for t in wall() {
+        world.list.push(t);
+    }
+
+    for i in 0..20 {
+        let mat = if i % 2 == 0 { metal } else { lam_g };
+        let i = i as f32;
+        let d = std::f32::consts::PI * 2.0 / 20.0;
+        let x = (d * i).sin() * 5.0;
+        let z = (d * i).cos() * 2.0;
+
+        world
+            .list
+            .push(Box::new(Sphere::new(Vec3::new(x, 0.5, z), 0.5, mat)));
+    }
+
+    for i in 0..20 {
+        let mat = if i % 2 == 1 { metal } else { lam_g };
+        let i = i as f32;
+        let d = std::f32::consts::PI * 2.0 / 20.0;
+        let x = (d * i).sin() * 5.0;
+        let z = (d * i).cos() * 5.0;
+
+        world
+            .list
+            .push(Box::new(Sphere::new(Vec3::new(x, 5.0, z), 0.5, mat)));
+    }
+
+    world
+}
 
 fn color(r: &Ray, world: &HittableList, depth: i32) -> Vec3 {
     if depth >= 50 {
@@ -40,6 +121,7 @@ fn color(r: &Ray, world: &HittableList, depth: i32) -> Vec3 {
                 MaterialKind::Lambertian(m) => m.scatter(r, &hr),
                 MaterialKind::Dielectric(m) => m.scatter(r, &hr),
                 MaterialKind::Metal(m) => m.scatter(r, &hr),
+                MaterialKind::DielectricWithAlbedo(m) => m.scatter(r, &hr),
             };
 
             match scatter_result {
@@ -59,10 +141,12 @@ fn color(r: &Ray, world: &HittableList, depth: i32) -> Vec3 {
     }
 }
 
+#[allow(dead_code)]
 fn r2() -> f32 {
     rand_uniform() * rand_uniform()
 }
 
+#[allow(dead_code)]
 fn random_scene() -> HittableList {
     fastrand::seed(0);
     let mut world = HittableList::new();
@@ -79,7 +163,7 @@ fn random_scene() -> HittableList {
             let b = b as f32;
 
             let center = Vec3::new(a + 0.9 * rand_uniform(), 0.2, b + 0.9 * rand_uniform());
-            if (center - Vec3::new(4.0, 0.2, 0.0)).length() > 0.9 {
+            if (center - Vec3::new(4.0, 0.2, 0.0)).length() > 0.9 && rand_uniform() < 0.7 {
                 let choose_mat = rand_uniform();
                 if choose_mat < 0.8 {
                     let s = Box::new(Sphere::new(
@@ -129,6 +213,11 @@ fn random_scene() -> HittableList {
         1.0,
         MaterialKind::Metal(Metal::new(Vec3::new(0.7, 0.6, 0.5), 0.0)),
     )));
+
+    for t in ramiel(Vec3::new(3.0, 1.0, 2.0), 1.0) {
+        world.list.push(t);
+    }
+
     world
 }
 
@@ -165,8 +254,6 @@ async fn rendering() {
     }
     ib.save("my_scene.png").unwrap();
 }
-
-use clap::{App, Arg};
 
 fn main() {
     let matches = App::new("rtt")
