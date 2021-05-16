@@ -117,6 +117,6 @@ fn main() {
 
     let thread: usize = matches.value_of("thread").unwrap_or("0").parse().unwrap();
     let start = std::time::SystemTime::now();
-    rendering(NX, NY, NS, &CAM, &SCENE, thread);
+    rendering(NX, NY, NS, &CAM, &SCENE, thread, "my_scene.png");
     println!("{:?}", start.elapsed().unwrap());
 }

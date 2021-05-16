@@ -42,6 +42,7 @@ pub fn rendering(
     cam: &'static Camera,
     scnene: &'static HittableList,
     thread_num: usize,
+    png_file_name: &str,
 ) {
     let mut runtime = tokio::runtime::Builder::new_multi_thread();
     if thread_num > 0 {
@@ -78,6 +79,6 @@ pub fn rendering(
                 ib.put_pixel(i as u32, j as u32, image::Rgb([col.r(), col.g(), col.b()]));
             }
         }
-        ib.save("my_scene.png").unwrap();
+        ib.save(png_file_name).unwrap();
     });
 }

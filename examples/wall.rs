@@ -93,6 +93,6 @@ fn test_scene() -> HittableList {
 
 fn main() {
     let start = std::time::SystemTime::now();
-    rendering(NX, NY, NS, &CAM, &SCENE, 0);
+    rendering(NX, NY, NS, &CAM, &SCENE, 0, "wall.png");
     println!("{:?}", start.elapsed().unwrap());
 }
