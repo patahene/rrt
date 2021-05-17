@@ -45,7 +45,7 @@ fn random_scene() -> HittableList {
             let b = b as f32;
 
             let center = Vec3::new(a + 0.9 * rand_uniform(), 0.2, b + 0.9 * rand_uniform());
-            if (center - Vec3::new(4.0, 0.2, 0.0)).length() > 0.9 && rand_uniform() < 0.7 {
+            if (center - Vec3::new(4.0, 0.2, 0.0)).length() > 0.9 {
                 let choose_mat = rand_uniform();
                 if choose_mat < 0.8 {
                     let s = Box::new(Sphere::new(
