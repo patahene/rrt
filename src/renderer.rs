@@ -40,7 +40,7 @@ pub fn rendering(
     height: u32,
     sampling_num: u32,
     cam: &'static Camera,
-    scnene: &'static HittableList,
+    scene: &'static HittableList,
     thread_num: usize,
     png_file_name: &str,
 ) {
@@ -60,12 +60,13 @@ pub fn rendering(
                             let u = (rand_uniform() + i as f32) / width as f32;
                             let v = (rand_uniform() + (height - j - 1) as f32) / height as f32;
                             let r = cam.get_ray(u, v);
-                            col += color(&r, scnene, 0);
+                            col += color(&r, scene, 0);
                         }
                         col /= sampling_num as f32;
                         col = Vec3::new(col.x().sqrt(), col.y().sqrt(), col.z().sqrt());
                         row.push(col);
                     }
+                    dbg!(j);
                     row
                 });
                 jh.push(h);
