@@ -5,6 +5,7 @@ use crate::random::rand_uniform;
 use crate::ray::Ray;
 use crate::vec3::Vec3;
 use image::ImageBuffer;
+use indicatif::ProgressBar;
 
 fn color(r: &Ray, world: &HittableList, depth: i32) -> Vec3 {
     if depth >= 50 {
@@ -43,6 +44,7 @@ pub fn rendering(
     scene: &'static HittableList,
     thread_num: usize,
     png_file_name: &str,
+    silent: bool,
 ) {
     let mut runtime = tokio::runtime::Builder::new_multi_thread();
     if thread_num > 0 {
@@ -66,20 +68,30 @@ pub fn rendering(
                         col = Vec3::new(col.x().sqrt(), col.y().sqrt(), col.z().sqrt());
                         row.push(col);
                     }
-                    dbg!(j);
                     row
                 });
                 jh.push(h);
             }
         }
 
+        let bar = ProgressBar::new(height as u64);
+        if !silent {
+            bar.set_position(0);
+        }
         let mut ib = ImageBuffer::new(width, height);
         for (j, h) in jh.iter_mut().enumerate() {
             let r = h.await.unwrap();
             for (i, col) in r.iter().enumerate() {
                 ib.put_pixel(i as u32, j as u32, image::Rgb([col.r(), col.g(), col.b()]));
             }
+            if !silent {
+                bar.inc(1);
+            }
         }
         ib.save(png_file_name).unwrap();
+
+        if !silent {
+            bar.finish();
+        }
     });
 }

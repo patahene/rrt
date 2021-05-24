@@ -113,10 +113,15 @@ fn main() {
                 .value_name("THREAD_NUM")
                 .takes_value(true),
         )
+        .arg(Arg::with_name("silent").short("s").long("silent"))
         .get_matches();
 
     let thread: usize = matches.value_of("thread").unwrap_or("0").parse().unwrap();
+    let silent: bool = match matches.occurrences_of("silent") {
+        0 => false,
+        _ => true,
+    };
     let start = std::time::SystemTime::now();
-    rendering(NX, NY, NS, &CAM, &SCENE, thread, "my_scene.png");
+    rendering(NX, NY, NS, &CAM, &SCENE, thread, "my_scene.png", silent);
     println!("{:?}", start.elapsed().unwrap());
 }
