@@ -6,6 +6,8 @@ I have done by rust-lang and added some additional features.
 
 ![output](./my_scene.png)
 
+![teapot](./teapot.png)
+
 ## How to run
 
 ```sh
