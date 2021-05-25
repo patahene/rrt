@@ -5,3 +5,13 @@ This is a hobby project following this awesome book, ["Ray Tracing in One Weeken
 I have done by rust-lang and added some additional features.
 
 ![output](./my_scene.png)
+
+## How to run
+
+```sh
+$ cargo run --release
+    Finished release [optimized] target(s) in 0.30s
+     Running `target/release/rrt -t=6`
+██████████████████████████████████████████████████████████ 2160/2160
+19521.890402s
+```
