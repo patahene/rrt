@@ -9,9 +9,9 @@ use rrt::renderer::rendering;
 use rrt::sphere::Sphere;
 use rrt::vec3::Vec3;
 
-const NX: u32 = 1920;
-const NY: u32 = 1080;
-const NS: u32 = 100;
+const NX: u32 = 1920 * 2;
+const NY: u32 = 1080 * 2;
+const NS: u32 = 1000;
 
 static SCENE: Lazy<HittableList> = Lazy::new(|| random_scene());
 static CAM: Lazy<Camera> = Lazy::new(|| {
